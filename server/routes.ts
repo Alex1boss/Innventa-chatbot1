@@ -155,6 +155,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to generate session ID" });
     }
   });
+  
+  // Simple chatbot endpoint for external integrations (ManyChat, etc.)
+  app.post("/chatbot", async (req: Request, res: Response) => {
+    try {
+      console.log('Received external chatbot request:', req.body);
+      
+      const userMessage = req.body.message;
+      
+      if (!userMessage || typeof userMessage !== 'string') {
+        return res.status(400).json({ 
+          reply: "Invalid request. Please provide a message in the format: { \"message\": \"your message here\" }"
+        });
+      }
+      
+      // Create a temporary session ID for this request
+      const sessionId = nanoid();
+      
+      // First try to match with predefined templates
+      let botResponse = matchResponse(userMessage);
+      let responseContent: string;
+      
+      // If no template matches, use AI for a dynamic response
+      if (botResponse === null) {
+        console.log('No template match found, using AI for external chatbot response');
+        
+        // Import our AI service with fallback capability
+        const { generateAIResponse } = await import('./aiService');
+        
+        // Generate AI response using the service that tries both OpenAI and Gemini
+        const aiResponse = await generateAIResponse(userMessage);
+        console.log('Generated AI response for external chatbot:', aiResponse);
+        
+        // Use AI-generated content
+        responseContent = aiResponse.content;
+      } else {
+        console.log('Template match found for external chatbot:', botResponse);
+        // Use the template response content
+        responseContent = botResponse.content;
+      }
+      
+      // Add a suffix with app link if appropriate
+      const includeAppLink = responseContent.toLowerCase().includes('product') || 
+                            responseContent.toLowerCase().includes('recommend') ||
+                            responseContent.toLowerCase().includes('app');
+      
+      let finalResponse = responseContent;
+      
+      if (includeAppLink) {
+        finalResponse += "\n\nCheck out our app for personalized recommendations: https://innventa.ai/app";
+      }
+      
+      // Return the simple response format
+      res.json({ reply: finalResponse });
+    } catch (error) {
+      console.error('Error processing external chatbot request:', error);
+      res.status(500).json({ 
+        reply: "Sorry, I'm having trouble processing your request right now. Please try again later or visit our website at https://innventa.ai for assistance."
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

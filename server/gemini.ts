@@ -1,7 +1,28 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
 // Initialize the Gemini API client
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// We'll initialize this when the function is called to ensure the API key is available
+let genAI: GoogleGenerativeAI | null = null;
+
+// Safety settings to avoid harmful content
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+];
 
 // System prompt to guide the AI's behavior
 const systemPrompt = `You are a friendly shopping assistant chat bot called Innventa AI.
@@ -30,18 +51,31 @@ NEVER invent fake features or capabilities of the Innventa AI app.
  */
 export async function generateGeminiResponse(userMessage: string): Promise<{content: string, success: boolean}> {
   try {
-    // Try to use a model that we know exists - try different versions
-    let modelName = "gemini-pro";
-    try {
-      // Let's first attempt to list available models
-      console.log('Attempting to determine available Gemini models...');
-      // Future improvement: we could call the list models API here
-    } catch (modelError) {
-      console.log('Could not determine available models, using gemini-pro as default');
+    // Use the correct Gemini API version and model name
+    // For Gemini API, we need to use "gemini-pro" model with the correct API version
+    // The error we're seeing indicates that either the API key is invalid or the API version 
+    // in the library doesn't match the expected version
+    
+    console.log('Checking Gemini API key and configuration...');
+    const apiKey = process.env.GEMINI_API_KEY;
+    
+    if (!apiKey || apiKey.trim() === '') {
+      console.error('GEMINI_API_KEY is missing or empty');
+      throw new Error('GEMINI_API_KEY environment variable is missing or empty');
     }
     
+    // Initialize the Gemini API client with the API key
+    genAI = new GoogleGenerativeAI(apiKey);
+    
+    // Use gemini-pro model, which should be available for most Gemini API keys
+    const modelName = "gemini-pro";
     console.log(`Using Gemini model: ${modelName}`);
-    const model = genAI.getGenerativeModel({ model: modelName });
+    
+    // Create the model with safety settings
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      safetySettings
+    });
     
     // Start with system instructions
     const generationConfig = {
