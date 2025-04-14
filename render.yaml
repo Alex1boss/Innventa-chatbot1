@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: innventa-ai-chatbot
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node render-start.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /health

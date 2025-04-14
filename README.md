@@ -29,103 +29,54 @@ A chatbot system for Instagram DMs that provides Innventa AI app information and
 ### Monitoring
 - `GET /health` - Health check endpoint
 
-## Hosting 24/7 for Free on Replit
+## Free Hosting Options
 
-This application is designed to be hosted 24/7 for free on Replit. The implementation includes multiple redundant systems to ensure maximum uptime even on Replit's free tier.
+This application can be hosted for free on several platforms. We've prepared deployment instructions for Render.com's free tier, which offers 750 hours of runtime per month.
 
-### Deployment Instructions
+### Deployment on Render.com (Free)
 
-1. **Fork or Create a New Replit**:
-   - Create a new Replit project or fork this repository
-   - Make sure it's set up as a Node.js project
+See the detailed instructions in [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md).
 
-2. **Deploy the Application**:
-   - Click the "Deploy" button in the Replit interface
-   - This will create a public URL for your application
-   - Note the URL, it will be in the format: `https://your-repl-name.username.repl.co`
+Quick steps:
+1. Push code to GitHub
+2. Connect your GitHub repo to Render
+3. Let Render detect the `render.yaml` configuration
+4. Add your API keys as environment variables
+5. Deploy your application
 
-3. **Set Up the ManyChat Integration**:
-   - Configure ManyChat to use your deployed application URL
-   - Use the `/chatbot` endpoint for Instagram DM integration
+Your app will be available at `https://innventa-ai-chatbot.onrender.com` or a similar URL assigned by Render.
 
-Now follow these steps for 24/7 availability:
+### Using with ManyChat for Instagram DMs
 
-### Steps for 24/7 Free Hosting
+To integrate with Instagram DMs through ManyChat:
 
-1. **Enable Always On**:
-   - Go to your Replit project dashboard
-   - Click the "Tools" button in the left sidebar
-   - Select "Always On" 
-   - Toggle it ON to keep your repl running even when not actively used
-
-2. **Configure API Keys**:
-   - Set up required API keys in Replit Secrets for security
-   - Go to "Secrets" in the Replit Tools menu
-   - Add the following secrets:
-     - `OPENAI_API_KEY` - Your OpenAI API key
-     - `GEMINI_API_KEY` - Your Google Gemini API key (optional, for fallback)
-
-3. **Use the Provided Monitoring System**:
-   The project includes two monitoring scripts to ensure 24/7 availability:
-   
-   a) **Internal Monitoring (keepalive.js)**:
-   - Monitors the application from within the Replit environment
-   - Automatically restarts the application if it becomes unresponsive
-   - Run it in the background with: `node keepalive.js &`
-   
-   b) **External Monitoring (external-monitoring.js)**:
-   - Simulates external pings to keep the Replit instance alive
-   - Works even when Always On has limitations
-   - Run it in a separate terminal with: `node external-monitoring.js &`
-
-4. **Use the One-Command Startup Script**:
-   - We've created a convenient startup script that handles everything for you
-   - In the Replit Shell, simply run:
-   ```bash
-   ./start-all.sh
-   ```
-   - This script will:
-     - Check if your API keys are configured
-     - Start the main application server
-     - Launch the internal monitoring system (keepalive.js)
-     - Launch the external monitoring system (external-monitoring.js)
-     - Show the status of all running processes
-   
-   - Alternatively, you can start components manually:
-   ```bash
-   # Start the internal monitoring
-   node keepalive.js &
-   
-   # Start the external monitoring in a separate process
-   node external-monitoring.js &
-   
-   # You can check that all are running with:
-   ps aux | grep node
-   ```
-
-5. **Additional External Monitoring (Optional but Recommended)**:
-   - Use a free service like UptimeRobot (https://uptimerobot.com/)
-   - Create a new monitor that pings `https://your-repl-name.username.repl.co/health` every 5 minutes
-   - Set up alert notifications to your email if the service goes down
-
-6. **For Ultimate Reliability (Optional)**:
-   - Set up multiple external monitoring services (UptimeRobot, Pingdom, StatusCake)
-   - Configure them to ping at different intervals
-   - This ensures your app never sleeps on Replit's free tier
-
-### Using with Instagram/ManyChat
-
-To use this chatbot with Instagram DMs through ManyChat:
-
-1. Set up a ManyChat account and connect your Instagram business profile
-2. In ManyChat Flow Builder, create a new flow triggered by specific messages
-3. Add an HTTP Request action using:
+1. In ManyChat, create a new flow triggered by specific messages
+2. Add an HTTP Request action using:
    - Method: POST
-   - URL: `https://your-repl-name.username.repl.co/chatbot`
+   - URL: `https://your-app-url.onrender.com/chatbot`
    - Headers: `{ "Content-Type": "application/json" }`
    - Body: `{ "message": "{{last user message}}" }`
-4. Parse the response to get the reply from: `{{HTTP.body.reply}}`
-5. Send the parsed reply back to the user
+3. Parse the response to get the reply from: `{{HTTP.body.reply}}`
+4. Send the parsed reply back to the user
+
+### Maintaining Availability (Free Tier Considerations)
+
+Free tier services on Render spin down after periods of inactivity. To maximize uptime:
+
+1. **External Monitoring**:
+   - Use a free service like UptimeRobot (https://uptimerobot.com/)
+   - Create a monitor to ping your `/health` endpoint every 5 minutes
+   - This helps keep your application active
+
+2. **Scheduled Jobs**: 
+   - Consider setting up a scheduled job on Render to keep your service active
+   - This can help prevent the service from spinning down
+
+3. **Fast Recovery**:
+   - The health endpoint helps your service recover quickly if it does spin down
+   - The first request after inactivity may take a few seconds to respond
+
+
 
 ## Development
 
