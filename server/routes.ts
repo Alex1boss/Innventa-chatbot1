@@ -43,19 +43,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const savedMessage = await storage.createMessage(messageData);
       console.log('User message stored:', savedMessage);
       
-      // Generate bot response based on the user message
-      const botResponse = matchResponse(messageData.content);
-      console.log('Generated bot response:', botResponse);
+      // Try to match with predefined templates first
+      let botResponse = matchResponse(messageData.content);
+      let responseContent: string;
+      let quickReplies: string[] | undefined;
+      let includeAppRedirect: boolean | undefined;
+      
+      // If no template matches, use AI for a dynamic response
+      if (botResponse === null) {
+        console.log('No template match found, using AI for response');
+        
+        // Import the OpenAI utility
+        const { generateAIResponse } = await import('./openai');
+        
+        // Generate AI response
+        const aiResponseText = await generateAIResponse(messageData.content);
+        console.log('Generated AI response:', aiResponseText);
+        
+        // Use AI-generated content
+        responseContent = aiResponseText;
+        
+        // Default quick replies for AI responses
+        quickReplies = [
+          "What is Innventa AI?",
+          "How do I use the app?",
+          "Product recommendations"
+        ];
+        
+        // Check if the response should include an app redirect
+        // We'll include it if the response mentions products or recommendations
+        const shouldRedirect = aiResponseText.toLowerCase().includes('product') || 
+                              aiResponseText.toLowerCase().includes('recommend') ||
+                              aiResponseText.toLowerCase().includes('app');
+        includeAppRedirect = shouldRedirect;
+      } else {
+        console.log('Template match found:', botResponse);
+        // Use the template response content and quick replies
+        responseContent = botResponse.content;
+        quickReplies = botResponse.quickReplies;
+        includeAppRedirect = botResponse.includeAppRedirect;
+      }
+      
+      // Create the final response object
+      const finalResponse = {
+        content: responseContent,
+        quickReplies,
+        includeAppRedirect
+      };
       
       // Store the bot response in our storage
       await storage.createMessage({
         sessionId: messageData.sessionId,
-        content: botResponse.content,
+        content: responseContent,
         fromUser: false
       });
       
       // Return the bot response to the client
-      res.json({ message: botResponse });
+      res.json({ message: finalResponse });
     } catch (error) {
       console.error('Error processing message:', error);
       

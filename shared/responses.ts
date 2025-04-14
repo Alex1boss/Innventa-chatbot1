@@ -127,7 +127,7 @@ export const responseTemplates: Record<string, ResponseTemplate> = {
 };
 
 // Function to match user input with relevant response
-export function matchResponse(input: string): ResponseTemplate {
+export function matchResponse(input: string): ResponseTemplate | null {
   const lowerInput = input.toLowerCase().trim();
   
   // Check exact matches first
@@ -172,6 +172,6 @@ export function matchResponse(input: string): ResponseTemplate {
     }
   }
   
-  // Return default response if no matches
-  return responseTemplates.default;
+  // Return null to indicate no template matches - use AI response instead
+  return null;
 }
