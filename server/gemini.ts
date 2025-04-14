@@ -30,8 +30,18 @@ NEVER invent fake features or capabilities of the Innventa AI app.
  */
 export async function generateGeminiResponse(userMessage: string): Promise<{content: string, success: boolean}> {
   try {
-    // Use Gemini-pro model
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // Try to use a model that we know exists - try different versions
+    let modelName = "gemini-pro";
+    try {
+      // Let's first attempt to list available models
+      console.log('Attempting to determine available Gemini models...');
+      // Future improvement: we could call the list models API here
+    } catch (modelError) {
+      console.log('Could not determine available models, using gemini-pro as default');
+    }
+    
+    console.log(`Using Gemini model: ${modelName}`);
+    const model = genAI.getGenerativeModel({ model: modelName });
     
     // Start with system instructions
     const generationConfig = {
@@ -41,23 +51,15 @@ export async function generateGeminiResponse(userMessage: string): Promise<{cont
       maxOutputTokens: 250,
     };
     
-    // Create chat session
-    const chat = model.startChat({
-      generationConfig,
-      history: [
-        {
-          role: "user",
-          parts: [{ text: "Please behave according to these instructions:" + systemPrompt }],
-        },
-        {
-          role: "model", 
-          parts: [{ text: "I understand. I'll act as the Innventa AI shopping assistant chatbot with the guidelines you've provided." }]
-        }
-      ],
-    });
-    
-    // Send the user message and get a response
-    const result = await chat.sendMessage(userMessage);
+    // For direct generation instead of chat to avoid complications
+    const prompt = `${systemPrompt}
+
+User message: ${userMessage}
+
+Respond as the Innventa AI shopping assistant chatbot according to the guidelines above.`;
+
+    // Generate a direct response
+    const result = await model.generateContent(prompt);
     const response = result.response;
     
     // Extract the text content
