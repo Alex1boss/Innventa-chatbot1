@@ -53,29 +53,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (botResponse === null) {
         console.log('No template match found, using AI for response');
         
-        // Import the OpenAI utility
-        const { generateAIResponse } = await import('./openai');
+        // Import our AI service with fallback capability
+        const { generateAIResponse } = await import('./aiService');
         
-        // Generate AI response
-        const aiResponseText = await generateAIResponse(messageData.content);
-        console.log('Generated AI response:', aiResponseText);
+        // Generate AI response using the service that tries both OpenAI and Gemini
+        const aiResponse = await generateAIResponse(messageData.content);
+        console.log('Generated AI response:', aiResponse);
         
         // Use AI-generated content
-        responseContent = aiResponseText;
+        responseContent = aiResponse.content;
         
-        // Default quick replies for AI responses
-        quickReplies = [
-          "What is Innventa AI?",
-          "How do I use the app?",
-          "Product recommendations"
-        ];
-        
-        // Check if the response should include an app redirect
-        // We'll include it if the response mentions products or recommendations
-        const shouldRedirect = aiResponseText.toLowerCase().includes('product') || 
-                              aiResponseText.toLowerCase().includes('recommend') ||
-                              aiResponseText.toLowerCase().includes('app');
-        includeAppRedirect = shouldRedirect;
+        // Set appropriate quick replies based on API success
+        if (aiResponse.success) {
+          // Default quick replies for AI responses
+          quickReplies = [
+            "What is Innventa AI?",
+            "How do I use the app?",
+            "Product recommendations"
+          ];
+          
+          // Check if the response should include an app redirect
+          // We'll include it if the response mentions products or recommendations
+          const aiContent = responseContent.toLowerCase();
+          const shouldRedirect = aiContent.includes('product') || 
+                                aiContent.includes('recommend') ||
+                                aiContent.includes('app');
+          includeAppRedirect = shouldRedirect;
+        } else {
+          // For API errors, always use these quick replies to guide users
+          quickReplies = [
+            "What is Innventa AI?",
+            "How do I use the app?",
+            "Product recommendations"
+          ];
+          
+          // Always include app redirect for API errors to help guide users to the app
+          includeAppRedirect = true;
+        }
       } else {
         console.log('Template match found:', botResponse);
         // Use the template response content and quick replies

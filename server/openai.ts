@@ -25,9 +25,9 @@ NEVER invent fake features or capabilities of the Innventa AI app.
 /**
  * Generate an AI response using OpenAI
  * @param userMessage The user's message
- * @returns The AI-generated response content
+ * @returns The AI-generated response content and status
  */
-export async function generateAIResponse(userMessage: string): Promise<string> {
+export async function generateOpenAIResponse(userMessage: string): Promise<{content: string, success: boolean}> {
   try {
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     const response = await openai.chat.completions.create({
@@ -40,10 +40,29 @@ export async function generateAIResponse(userMessage: string): Promise<string> {
       temperature: 0.7,
     });
 
-    return response.choices[0].message.content || "I'm not sure how to respond to that. Can I help you with something else about Innventa AI?";
+    return {
+      content: response.choices[0].message.content || "I'm not sure how to respond to that. Can I help you with something else about Innventa AI?",
+      success: true
+    };
   } catch (error) {
     console.error('OpenAI API error:', error);
-    // Fallback response in case of API error
-    return "I'm having trouble connecting to my response system. Please try again in a moment, or ask me something about Innventa AI.";
+    
+    // Create a more helpful response based on the error type
+    let errorMessage: string;
+    
+    // Safely check error properties
+    const errorObject = error as any; // Type assertion for error inspection
+    
+    if (errorObject && (errorObject.code === 'insufficient_quota' || errorObject.status === 429)) {
+      errorMessage = `Hey there! 👋 I'd be happy to chat, but my AI brain needs a quick recharge. In the meantime, I can tell you all about Innventa AI and how it can help you find products you'll love!`;
+    } else {
+      errorMessage = `I'm having a moment connecting to my response system. While I get that fixed, can I tell you about how Innventa AI can help you discover amazing products?`;
+    }
+    
+    // Return error response with success: false flag
+    return {
+      content: errorMessage,
+      success: false
+    };
   }
 }
