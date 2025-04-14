@@ -31,28 +31,87 @@ A chatbot system for Instagram DMs that provides Innventa AI app information and
 
 ## Hosting 24/7 for Free on Replit
 
-This application is designed to be hosted 24/7 for free on Replit. Follow these steps:
+This application is designed to be hosted 24/7 for free on Replit. The implementation includes multiple redundant systems to ensure maximum uptime even on Replit's free tier.
+
+### Deployment Instructions
+
+1. **Fork or Create a New Replit**:
+   - Create a new Replit project or fork this repository
+   - Make sure it's set up as a Node.js project
+
+2. **Deploy the Application**:
+   - Click the "Deploy" button in the Replit interface
+   - This will create a public URL for your application
+   - Note the URL, it will be in the format: `https://your-repl-name.username.repl.co`
+
+3. **Set Up the ManyChat Integration**:
+   - Configure ManyChat to use your deployed application URL
+   - Use the `/chatbot` endpoint for Instagram DM integration
+
+Now follow these steps for 24/7 availability:
 
 ### Steps for 24/7 Free Hosting
 
 1. **Enable Always On**:
-   - Go to your Replit project
+   - Go to your Replit project dashboard
    - Click the "Tools" button in the left sidebar
    - Select "Always On" 
    - Toggle it ON to keep your repl running even when not actively used
 
-2. **Run the Keep-Alive Script**:
-   - The application includes a `keepalive.js` script that monitors and automatically restarts the service if needed
-   - In the Replit Shell, run: `node keepalive.js &` to run it in the background
+2. **Configure API Keys**:
+   - Set up required API keys in Replit Secrets for security
+   - Go to "Secrets" in the Replit Tools menu
+   - Add the following secrets:
+     - `OPENAI_API_KEY` - Your OpenAI API key
+     - `GEMINI_API_KEY` - Your Google Gemini API key (optional, for fallback)
 
-3. **Set Up External Pinging**:
-   - Use a free service like UptimeRobot (https://uptimerobot.com/) to ping your app
+3. **Use the Provided Monitoring System**:
+   The project includes two monitoring scripts to ensure 24/7 availability:
+   
+   a) **Internal Monitoring (keepalive.js)**:
+   - Monitors the application from within the Replit environment
+   - Automatically restarts the application if it becomes unresponsive
+   - Run it in the background with: `node keepalive.js &`
+   
+   b) **External Monitoring (external-monitoring.js)**:
+   - Simulates external pings to keep the Replit instance alive
+   - Works even when Always On has limitations
+   - Run it in a separate terminal with: `node external-monitoring.js &`
+
+4. **Use the One-Command Startup Script**:
+   - We've created a convenient startup script that handles everything for you
+   - In the Replit Shell, simply run:
+   ```bash
+   ./start-all.sh
+   ```
+   - This script will:
+     - Check if your API keys are configured
+     - Start the main application server
+     - Launch the internal monitoring system (keepalive.js)
+     - Launch the external monitoring system (external-monitoring.js)
+     - Show the status of all running processes
+   
+   - Alternatively, you can start components manually:
+   ```bash
+   # Start the internal monitoring
+   node keepalive.js &
+   
+   # Start the external monitoring in a separate process
+   node external-monitoring.js &
+   
+   # You can check that all are running with:
+   ps aux | grep node
+   ```
+
+5. **Additional External Monitoring (Optional but Recommended)**:
+   - Use a free service like UptimeRobot (https://uptimerobot.com/)
    - Create a new monitor that pings `https://your-repl-name.username.repl.co/health` every 5 minutes
-   - This keeps the application from going to sleep
+   - Set up alert notifications to your email if the service goes down
 
-4. **Configure API Keys**:
-   - Make sure your API keys are set in Replit Secrets for security
-   - Required secrets: `OPENAI_API_KEY` and/or `GEMINI_API_KEY`
+6. **For Ultimate Reliability (Optional)**:
+   - Set up multiple external monitoring services (UptimeRobot, Pingdom, StatusCake)
+   - Configure them to ping at different intervals
+   - This ensures your app never sleeps on Replit's free tier
 
 ### Using with Instagram/ManyChat
 
