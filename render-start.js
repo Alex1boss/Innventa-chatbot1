@@ -1,6 +1,6 @@
 // This script helps manage the startup process on Render
-import http from 'http';
-import { execSync, spawn } from 'child_process';
+const http = require('http');
+const { execSync, spawn } = require('child_process');
 
 // Function to check if the server is healthy
 function pingHealthEndpoint() {
