@@ -1,6 +1,7 @@
 // This script serves as the entrypoint for Render deployment
 // It starts the server and implements basic health check logging
 
+// Using CommonJS-style for maximum compatibility
 const { exec } = require('child_process');
 const http = require('http');
 
