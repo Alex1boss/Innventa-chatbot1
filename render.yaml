@@ -3,7 +3,7 @@ services:
     name: innventa-ai-chatbot
     env: node
     buildCommand: npm install && npm run build
-    startCommand: node render-start.js
+    startCommand: node render-start.cjs
     envVars:
       - key: NODE_ENV
         value: production
