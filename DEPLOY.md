@@ -16,8 +16,8 @@ This guide explains how to deploy the Innventa AI Chatbot to Render.com.
    - **Runtime**: Node
    - **Build Command**: `npm install; npm run build`
    - **Start Command**: `node render-start.cjs`
-   - **Plan**: Pro Plus (8GB RAM, 4 CPU) or higher
-      - IMPORTANT: Do not use the Free tier (512MB RAM) as it is insufficient for this application
+   - **Plan**: Free tier (512MB RAM, 0.1 CPU)
+      - NOTE: While the application can run on the free tier, you may experience slower response times, especially during peak usage.
 
 5. Add the following environment variables:
    - `NODE_ENV`: `production`
@@ -92,6 +92,21 @@ Render automatically assigns a port to your application. The application uses po
 ### Logs
 
 Access your application logs from the Render dashboard to diagnose issues.
+
+## Free Tier Optimizations
+
+When using the free tier (512MB RAM, 0.1 CPU), consider the following optimizations:
+
+1. **Response Time**: Expect slightly longer response times, especially for initial responses or after periods of inactivity.
+
+2. **Idling**: Free tier services on Render will sleep after 15 minutes of inactivity. The first request after inactivity will take longer as the service spins up.
+
+3. **Memory Usage**: We've optimized the startup script to reduce memory usage:
+   - Integrated health checks into the main process instead of using a separate process
+   - Increased interval times for monitoring tasks
+   - Removed unnecessary background processes
+
+4. **Concurrency**: The free tier has limited capacity to handle concurrent users. For production use with more than a few simultaneous users, consider upgrading to a paid plan.
 
 ## Testing the Deployment
 

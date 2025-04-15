@@ -13,7 +13,7 @@ services:
         sync: false
       - key: EXTERNAL_URL
         value: "https://innventa-ai-chatbot.onrender.com/health"
-    plan: pro-plus # 8GB RAM, 4 CPU
+    plan: free # 512MB RAM, 0.1 CPU
     branch: main
     region: oregon
     numInstances: 1

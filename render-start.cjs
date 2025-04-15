@@ -57,15 +57,41 @@ for (const envVar of requiredEnvVars) {
   }
 }
 
-// Start the keepalive service in background
-console.log('Starting keepalive service...');
-const keepaliveProcess = spawn('node', ['keepalive.cjs'], {
-  stdio: 'inherit',
-  shell: true,
-  detached: true
-});
+// On free tier, we'll integrate keepalive with the main process instead of spawning a separate process
+console.log('Running on free tier - integrating keepalive with main process...');
 
-keepaliveProcess.unref(); // Allow the keepalive process to run independently
+// Simple internal health check (minimal version of keepalive.cjs functionality)
+const pingInternalHealth = () => {
+  const http = require('http');
+  const options = {
+    hostname: 'localhost',
+    port: 5000,
+    path: '/health',
+    method: 'GET',
+    timeout: 5000
+  };
+
+  const req = http.request(options, (res) => {
+    if (res.statusCode === 200) {
+      console.log(`[${new Date().toISOString()}] Internal health check passed!`);
+    } else {
+      console.error(`[${new Date().toISOString()}] Health check failed with status code: ${res.statusCode}`);
+    }
+  });
+
+  req.on('error', (error) => {
+    console.error(`[${new Date().toISOString()}] Internal health check error: ${error.message}`);
+  });
+
+  req.end();
+};
+
+// Set a 10-minute interval for internal health checks
+const healthInterval = 10 * 60 * 1000;
+setTimeout(() => {
+  setInterval(pingInternalHealth, healthInterval);
+  console.log(`[${new Date().toISOString()}] Internal health checks scheduled every ${healthInterval/1000/60} minutes`);
+}, 60000); // Start after 1 minute to give the server time to start
 
 // Start the server with npm run start
 console.log('Starting main application...');
