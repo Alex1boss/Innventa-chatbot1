@@ -41,17 +41,17 @@ function checkApiKeys() {
   return true;
 }
 
-// Serve static files
+// Prepare static files directory
 const staticDir = path.join(__dirname, 'dist');
-if (fs.existsSync(staticDir)) {
-  app.use(express.static(staticDir));
-  console.log(`Serving static files from ${staticDir}`);
-} else {
-  console.warn(`Static directory ${staticDir} not found, creating it...`);
-  fs.mkdirSync(staticDir, { recursive: true });
 
-  // Create a basic HTML file
-  const htmlContent = `<!DOCTYPE html>
+// Always ensure the dist directory exists
+if (!fs.existsSync(staticDir)) {
+  console.log(`Creating static directory at ${staticDir}...`);
+  fs.mkdirSync(staticDir, { recursive: true });
+}
+
+// Create a basic HTML file (always create/overwrite to ensure it exists)
+const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -82,6 +82,113 @@ if (fs.existsSync(staticDir)) {
       margin-top: 0;
       color: #6366f1;
     }
+    .chatui {
+      margin-top: 2rem;
+      text-align: left;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      height: 300px;
+      overflow-y: auto;
+      padding: 1rem;
+      background: #f9fafb;
+    }
+    .message {
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 1rem;
+      max-width: 80%;
+      word-break: break-word;
+    }
+    .bot {
+      background: #e5e7eb;
+      margin-right: auto;
+      border-bottom-left-radius: 0.25rem;
+    }
+    .user {
+      background: #6366f1;
+      color: white;
+      margin-left: auto;
+      border-bottom-right-radius: 0.25rem;
+    }
+    .input-area {
+      display: flex;
+      margin-top: 1rem;
+      gap: 0.5rem;
+    }
+    input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+    }
+    button {
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #4f46e5;
+    }
+    .quick-replies {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .quick-reply {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .quick-reply:hover {
+      background: #e5e7eb;
+    }
+    .typing-indicator {
+      display: inline-block;
+      padding: 0.75rem 1rem;
+      background: #e5e7eb;
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+    }
+    .typing-indicator span {
+      width: 0.5rem;
+      height: 0.5rem;
+      background: #9ca3af;
+      display: inline-block;
+      border-radius: 50%;
+      margin: 0 0.1rem;
+      animation: typing 1.4s infinite both;
+    }
+    .typing-indicator span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    .typing-indicator span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    @keyframes typing {
+      0% { opacity: 0.4; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-0.4rem); }
+      100% { opacity: 0.4; transform: translateY(0); }
+    }
+    .api-status {
+      margin-top: 1rem;
+      font-size: 0.875rem;
+      text-align: center;
+    }
+    .api-status.error {
+      color: #dc2626;
+    }
+    .api-status.success {
+      color: #16a34a;
+    }
     a {
       color: #6366f1;
       text-decoration: none;
@@ -94,29 +201,193 @@ if (fs.existsSync(staticDir)) {
 <body>
   <div class="container">
     <h1>Innventa AI Chatbot</h1>
-    <p>Server is running. The front-end build will be available after a successful deployment.</p>
-    <p>Check for any build errors in the Render logs.</p>
-    <p>API Status: <span id="apiStatus">Checking...</span></p>
-    <script>
+    <p>Ask me anything about shopping, products, or Innventa AI!</p>
+    
+    <div class="chatui" id="chat-messages">
+      <!-- Messages will appear here -->
+    </div>
+    
+    <div id="typing-indicator" style="display: none;" class="typing-indicator">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    
+    <div id="quick-replies" class="quick-replies">
+      <!-- Quick replies will appear here -->
+    </div>
+    
+    <div class="input-area">
+      <input type="text" id="message-input" placeholder="Type your message..." />
+      <button id="send-button">Send</button>
+    </div>
+    
+    <div id="api-status" class="api-status">Checking API status...</div>
+  </div>
+
+  <script>
+    // Simple chat client
+    document.addEventListener('DOMContentLoaded', function() {
+      const messagesEl = document.getElementById('chat-messages');
+      const inputEl = document.getElementById('message-input');
+      const sendButton = document.getElementById('send-button');
+      const typingIndicator = document.getElementById('typing-indicator');
+      const quickRepliesEl = document.getElementById('quick-replies');
+      const apiStatusEl = document.getElementById('api-status');
+      
+      let sessionId = null;
+      
+      // Check API status and initialize chat
       fetch('/health')
         .then(response => response.json())
         .then(data => {
-          document.getElementById('apiStatus').textContent = 
-            data.apiKeys.openai === 'configured' && data.apiKeys.gemini === 'configured' 
-              ? 'All API keys configured ✅' 
-              : 'Missing API keys ❌';
+          const openaiConfigured = data.apiKeys.openai === 'configured';
+          const geminiConfigured = data.apiKeys.gemini === 'configured';
+          
+          if (openaiConfigured && geminiConfigured) {
+            apiStatusEl.textContent = 'AI services connected ✅';
+            apiStatusEl.className = 'api-status success';
+          } else {
+            const missing = [];
+            if (!openaiConfigured) missing.push('OpenAI');
+            if (!geminiConfigured) missing.push('Gemini');
+            
+            apiStatusEl.textContent = `Missing API keys: ${missing.join(', ')} ❌`;
+            apiStatusEl.className = 'api-status error';
+          }
+          
+          // Initialize session
+          return fetch('/api/chat/session');
         })
-        .catch(err => {
-          document.getElementById('apiStatus').textContent = 'Error checking API status ❌';
+        .then(response => response.json())
+        .then(data => {
+          sessionId = data.sessionId;
+          console.log('Session initialized:', sessionId);
+          
+          // Get welcome message
+          return fetch('/api/chat/welcome');
+        })
+        .then(response => response.json())
+        .then(data => {
+          addBotMessage(data.message.content);
+          showQuickReplies(data.message.quickReplies || []);
+        })
+        .catch(error => {
+          console.error('Error initializing chat:', error);
+          apiStatusEl.textContent = 'Error connecting to server ❌';
+          apiStatusEl.className = 'api-status error';
         });
-    </script>
-  </div>
+      
+      // Send message function
+      function sendMessage(message) {
+        if (!message.trim()) return;
+        
+        // Add user message to UI
+        addUserMessage(message);
+        
+        // Clear input
+        inputEl.value = '';
+        showTypingIndicator(true);
+        hideQuickReplies();
+        
+        // Send to server
+        fetch('/api/chat/message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message,
+            sessionId
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          showTypingIndicator(false);
+          addBotMessage(data.message.content);
+          showQuickReplies(data.message.quickReplies || []);
+        })
+        .catch(error => {
+          console.error('Error sending message:', error);
+          showTypingIndicator(false);
+          addBotMessage('Sorry, there was an error processing your message. Please try again.');
+        });
+      }
+      
+      // Add a user message bubble
+      function addUserMessage(content) {
+        const messageEl = document.createElement('div');
+        messageEl.className = 'message user';
+        messageEl.textContent = content;
+        messagesEl.appendChild(messageEl);
+        scrollToBottom();
+      }
+      
+      // Add a bot message bubble
+      function addBotMessage(content) {
+        const messageEl = document.createElement('div');
+        messageEl.className = 'message bot';
+        messageEl.textContent = content;
+        messagesEl.appendChild(messageEl);
+        scrollToBottom();
+      }
+      
+      // Show/hide typing indicator
+      function showTypingIndicator(show) {
+        typingIndicator.style.display = show ? 'inline-block' : 'none';
+      }
+      
+      // Show quick replies
+      function showQuickReplies(replies) {
+        if (!replies || !replies.length) return;
+        
+        quickRepliesEl.innerHTML = '';
+        
+        replies.forEach(reply => {
+          const replyEl = document.createElement('div');
+          replyEl.className = 'quick-reply';
+          replyEl.textContent = reply;
+          
+          replyEl.addEventListener('click', function() {
+            sendMessage(reply);
+          });
+          
+          quickRepliesEl.appendChild(replyEl);
+        });
+      }
+      
+      // Hide quick replies
+      function hideQuickReplies() {
+        quickRepliesEl.innerHTML = '';
+      }
+      
+      // Scroll chat to bottom
+      function scrollToBottom() {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+      
+      // Event listeners
+      sendButton.addEventListener('click', function() {
+        sendMessage(inputEl.value);
+      });
+      
+      inputEl.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+          sendMessage(inputEl.value);
+        }
+      });
+    });
+  </script>
 </body>
 </html>`;
-  
-  fs.writeFileSync(path.join(staticDir, 'index.html'), htmlContent);
-  console.log('Created basic index.html file');
-}
+
+// Write the HTML file to the dist directory
+fs.writeFileSync(path.join(staticDir, 'index.html'), htmlContent);
+console.log(`Created or updated index.html in ${staticDir}`);
+
+// Serve static files
+app.use(express.static(staticDir));
+console.log(`Serving static files from ${staticDir}`);
 
 // Parse JSON requests
 app.use(express.json());
