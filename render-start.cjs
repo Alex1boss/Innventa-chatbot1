@@ -163,6 +163,107 @@ setTimeout(() => {
 // Start the server with proper error handling
 console.log('Starting main application...');
 
+// Check if our path resolver is already in place
+try {
+  console.log('Checking for render-paths-fix.cjs path resolver...');
+  const fs = require('fs');
+  const path = require('path');
+  
+  // Path to our path resolution fix file
+  const pathsFixFile = path.join(process.cwd(), 'render-paths-fix.cjs');
+  
+  if (!fs.existsSync(pathsFixFile)) {
+    console.error('ERROR: render-paths-fix.cjs file not found!');
+    console.log('This file should have been included in the deployment.');
+    console.log('Will attempt to create it now...');
+    
+    // Try to create the paths fix file from the template in this file
+    const renderPathsFixContent = `/**
+ * This script fixes path resolution issues with import.meta.dirname
+ * in the Node.js environment on Render.
+ * 
+ * It uses a global require hook to patch the import.meta object.
+ */
+
+const path = require('path');
+const fs = require('fs');
+const Module = require('module');
+
+console.log('Render paths fix script loaded');
+console.log('Node.js version:', process.version);
+console.log('Current working directory:', process.cwd());
+
+// Create a helper for path resolution
+function resolveFromCwd(...segments) {
+  return path.resolve(process.cwd(), ...segments);
+}
+
+// List major directories to help with debugging
+try {
+  console.log('Project structure:');
+  const items = fs.readdirSync(process.cwd());
+  items.forEach(item => {
+    const stats = fs.statSync(path.join(process.cwd(), item));
+    console.log(\`- \${item} (\${stats.isDirectory() ? 'directory' : 'file'})\`);
+  });
+} catch (err) {
+  console.error('Error listing project structure:', err);
+}
+
+// Create a special patch for ESM modules that adds import.meta.dirname
+const originalCompile = Module.prototype._compile;
+Module.prototype._compile = function(content, filename) {
+  // Only patch JavaScript/TypeScript modules
+  if (filename.endsWith('.js') || filename.endsWith('.mjs') || filename.endsWith('.cjs')) {
+    // This patched content ensures import.meta.dirname is always defined
+    const patchedContent = \`
+      // Start of patch for import.meta.dirname
+      import { fileURLToPath as __fileURLToPath } from 'url';
+      import { dirname as __dirname_fn } from 'path';
+      
+      // Ensure import.meta.dirname is available and correct
+      if (!import.meta.dirname) {
+        Object.defineProperty(import.meta, 'dirname', {
+          get() {
+            try {
+              return __dirname_fn(__fileURLToPath(import.meta.url));
+            } catch (err) {
+              console.error('Error calculating dirname:', err);
+              return process.cwd();
+            }
+          }
+        });
+      }
+      // End of patch
+      
+      \${content}
+    \`;
+    
+    return originalCompile.call(this, patchedContent, filename);
+  }
+  
+  // For non-JS files, use the original compile
+  return originalCompile.call(this, content, filename);
+};
+
+// Expose utilities for other modules
+module.exports = {
+  resolveFromCwd,
+  getProjectRoot: () => process.cwd()
+};
+
+console.log('Render paths fix script initialized successfully');`;
+    
+    fs.writeFileSync(pathsFixFile, renderPathsFixContent);
+    console.log('Created render-paths-fix.cjs successfully');
+  } else {
+    console.log('render-paths-fix.cjs file found, will use it for path resolution');
+  }
+} catch (pathsFixError) {
+  console.error('Error checking/creating render-paths-fix.cjs:', pathsFixError);
+  console.log('Will attempt to continue, but path resolution errors may occur');
+}
+
 // Wrap the spawn in a try-catch to handle any immediate errors
 try {
   // First check if the dist/index.js file exists
@@ -190,13 +291,16 @@ try {
   }
   
   console.log('Starting server process...');
-  const childProcess = spawn('npm', ['run', 'start'], {
+  // Use a custom environment variable to indicate we're running in Render environment
+  const childProcess = spawn('node', ['--require=./render-paths-fix.cjs', 'dist/index.js'], {
     stdio: 'inherit',
     shell: true,
     env: { 
       ...process.env,
       // Make sure NODE_ENV is set for production
-      NODE_ENV: 'production'
+      NODE_ENV: 'production',
+      // Add a flag to indicate we're in Render
+      IS_RENDER: 'true'
     }
   });
 
