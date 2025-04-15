@@ -1,6 +1,6 @@
 // This script helps manage the startup process on Render
-const http = require('http');
-const { execSync } = require('child_process');
+import http from 'http';
+import { execSync, spawn } from 'child_process';
 
 // Function to check if the server is healthy
 function pingHealthEndpoint() {
@@ -57,8 +57,19 @@ for (const envVar of requiredEnvVars) {
   }
 }
 
+// Start the keepalive service in background
+console.log('Starting keepalive service...');
+const keepaliveProcess = spawn('node', ['keepalive.js'], {
+  stdio: 'inherit',
+  shell: true,
+  detached: true
+});
+
+keepaliveProcess.unref(); // Allow the keepalive process to run independently
+
 // Start the server with npm run start
-const childProcess = require('child_process').spawn('npm', ['run', 'start'], {
+console.log('Starting main application...');
+const childProcess = spawn('npm', ['run', 'start'], {
   stdio: 'inherit',
   shell: true
 });

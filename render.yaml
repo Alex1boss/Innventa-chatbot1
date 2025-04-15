@@ -3,7 +3,7 @@ services:
     name: innventa-ai-chatbot
     env: node
     buildCommand: npm install; npm run build
-    startCommand: npm run start
+    startCommand: npm run start:render
     envVars:
       - key: NODE_ENV
         value: production
@@ -11,6 +11,8 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: EXTERNAL_URL
+        value: "https://innventa-ai-chatbot.onrender.com/health"
     plan: pro-plus # 8GB RAM, 4 CPU
     branch: main
     region: oregon
