@@ -64,12 +64,27 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  // If port 5000 is unavailable, try 5001
+  const preferredPort = 5000;
+  const fallbackPort = 5001;
+  
+  const tryListen = (port: number) => {
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${port}`);
+    }).on('error', (e: any) => {
+      if (e.code === 'EADDRINUSE' && port === preferredPort) {
+        log(`Port ${preferredPort} in use, trying ${fallbackPort}...`);
+        tryListen(fallbackPort);
+      } else {
+        log(`Failed to start server: ${e.message}`);
+        throw e;
+      }
+    });
+  };
+  
+  tryListen(preferredPort);
 })();
