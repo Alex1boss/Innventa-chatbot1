@@ -49,12 +49,35 @@ console.log('Starting server...');
 
 // Make sure the API keys are properly set
 const requiredEnvVars = ['OPENAI_API_KEY', 'GEMINI_API_KEY'];
+const missingVars = [];
+
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
-    console.error(`ERROR: Required environment variable ${envVar} is missing`);
-    console.error('Please set this environment variable in the Render dashboard');
-    process.exit(1);
+    missingVars.push(envVar);
   }
+}
+
+if (missingVars.length > 0) {
+  console.error(`⚠️ ERROR: The following required environment variables are missing: ${missingVars.join(', ')}`);
+  console.error('');
+  console.error('================== ACTION REQUIRED ==================');
+  console.error('Please set these environment variables in the Render dashboard:');
+  console.error('1. Go to your Render dashboard: https://dashboard.render.com');
+  console.error('2. Open your deployed service "innventa-ai-chatbot"');
+  console.error('3. Click on "Environment" in the left sidebar');
+  console.error('4. Add the missing environment variables under "Environment Variables"');
+  console.error('');
+  console.error('For OPENAI_API_KEY: Create or use an existing API key from https://platform.openai.com/api-keys');
+  console.error('For GEMINI_API_KEY: Create or use an existing API key from https://aistudio.google.com/app/apikey');
+  console.error('');
+  console.error('After adding the environment variables, redeploy your service.');
+  console.error('====================================================');
+  console.error('');
+  
+  // Let's attempt to continue anyway, the render-paths-fix.cjs will handle this more gracefully
+  console.log('Attempting to continue despite missing environment variables...');
+} else {
+  console.log('✅ All required environment variables are set');
 }
 
 // On free tier, we'll integrate keepalive with the main process instead of spawning a separate process
