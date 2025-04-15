@@ -2,9 +2,17 @@ services:
   - type: web
     name: innventa-ai-chatbot
     env: node
-    buildCommand: npm install && npm run build
-    startCommand: node render-start.cjs
+    buildCommand: npm install; npm run build
+    startCommand: npm run start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+    plan: pro-plus # 8GB RAM, 4 CPU
+    branch: main
+    region: oregon
+    numInstances: 1
     healthCheckPath: /health
