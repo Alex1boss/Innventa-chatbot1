@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Test script for the Innventa AI Chatbot deployment
 const https = require('https');
+const http = require('http');
 
 // Configuration (replace with your actual deployment URL)
 const config = {
@@ -27,9 +28,12 @@ const config = {
 // Function to make HTTP requests
 function makeRequest(path, method, data = null) {
   return new Promise((resolve, reject) => {
+    const isHttps = config.baseUrl.startsWith('https://');
+    const urlObj = new URL(config.baseUrl);
+    
     const options = {
-      hostname: config.baseUrl.replace(/^https?:\/\//, ''),
-      port: 443,
+      hostname: urlObj.hostname,
+      port: urlObj.port || (isHttps ? 443 : 80),
       path,
       method,
       headers: {
@@ -37,7 +41,9 @@ function makeRequest(path, method, data = null) {
       }
     };
 
-    const req = https.request(options, (res) => {
+    const requestLib = isHttps ? https : http;
+    
+    const req = requestLib.request(options, (res) => {
       let responseData = '';
       
       res.on('data', (chunk) => {
