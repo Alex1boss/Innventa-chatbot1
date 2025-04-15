@@ -15,8 +15,9 @@ This guide explains how to deploy the Innventa AI Chatbot to Render.com.
    - **Branch**: main
    - **Runtime**: Node
    - **Build Command**: `npm install; npm run build`
-   - **Start Command**: `npm run start:render`
-   - **Plan**: Pro Plus (8GB RAM, 4 CPU)
+   - **Start Command**: `node render-start.cjs`
+   - **Plan**: Pro Plus (8GB RAM, 4 CPU) or higher
+      - IMPORTANT: Do not use the Free tier (512MB RAM) as it is insufficient for this application
 
 5. Add the following environment variables:
    - `NODE_ENV`: `production`
@@ -54,18 +55,28 @@ The server exposes a `/health` endpoint that returns a 200 OK status when the se
 
 ### 2. Keepalive Service
 
-The `keepalive.js` script runs in the background to prevent the application from being idled by Render. This script:
+The `keepalive.cjs` script runs in the background to prevent the application from being idled by Render. This script:
 - Performs internal health checks every 5 minutes
 - Can be configured to ping an external URL to keep the service active
 
 ### 3. External Monitoring
 
-The `external-monitoring.js` script can be run on a separate server to monitor the application's health from outside. This script:
+The `external-monitoring.cjs` script can be run on a separate server to monitor the application's health from outside. This script:
 - Pings the application's health endpoint every 5 minutes
 - Retries failed health checks up to 3 times
 - Can be extended to send alerts when the application is unreachable
 
 ## Troubleshooting
+
+### ESM/CommonJS Compatibility
+
+This application contains a mix of ESM and CommonJS modules. The following files have been specifically set up as CommonJS files (with .cjs extension):
+- `render-start.cjs`: Main startup script for Render deployment
+- `keepalive.cjs`: Background service to prevent idling
+- `external-monitoring.cjs`: Optional external health monitoring
+- `test-deployment.cjs`: Test script for verifying deployment
+
+If you encounter errors like `ReferenceError: require is not defined in ES module scope`, you may need to ensure the file extensions are correct.
 
 ### API Keys
 
@@ -87,6 +98,10 @@ Access your application logs from the Render dashboard to diagnose issues.
 After deployment, you can test the API with:
 
 ```bash
+# Option 1: Use our test script
+DEPLOYMENT_URL=https://your-app-name.onrender.com node test-deployment.cjs
+
+# Option 2: Test manually with curl
 # Check if the service is healthy
 curl https://your-app-name.onrender.com/health
 
