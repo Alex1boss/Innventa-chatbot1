@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // Test script for the Innventa AI Chatbot deployment
 const https = require('https');
 

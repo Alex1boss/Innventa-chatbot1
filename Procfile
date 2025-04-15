@@ -1,1 +1,1 @@
-web: npm run start:render
+web: node render-start.cjs
