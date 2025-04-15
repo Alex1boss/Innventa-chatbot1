@@ -86,12 +86,45 @@ const pingInternalHealth = () => {
   req.end();
 };
 
-// Set a 10-minute interval for internal health checks
+// Set a 10-minute interval for internal health checks (primary keepalive)
 const healthInterval = 10 * 60 * 1000;
 setTimeout(() => {
   setInterval(pingInternalHealth, healthInterval);
   console.log(`[${new Date().toISOString()}] Internal health checks scheduled every ${healthInterval/1000/60} minutes`);
 }, 60000); // Start after 1 minute to give the server time to start
+
+// Add an external ping function to keep the service alive 24/7
+const pingExternalEndpoint = () => {
+  const https = require('https');
+  const appUrl = process.env.EXTERNAL_URL || `https://${process.env.RENDER_EXTERNAL_HOSTNAME || 'your-app-name.onrender.com'}/health`;
+  
+  console.log(`[${new Date().toISOString()}] Sending external ping to ${appUrl} to prevent idling`);
+  
+  const req = https.get(appUrl, (res) => {
+    console.log(`[${new Date().toISOString()}] External ping response: ${res.statusCode}`);
+    let data = '';
+    res.on('data', (chunk) => {
+      data += chunk;
+    });
+    res.on('end', () => {
+      console.log(`[${new Date().toISOString()}] External ping response data: ${data}`);
+    });
+  });
+  
+  req.on('error', (error) => {
+    console.error(`[${new Date().toISOString()}] External ping error: ${error.message}`);
+  });
+  
+  req.end();
+};
+
+// Setup anti-idle pings every 10 minutes to prevent the service from sleeping
+// Render free tier sleeps after 15 minutes of inactivity
+const antiIdleInterval = 10 * 60 * 1000; 
+setTimeout(() => {
+  setInterval(pingExternalEndpoint, antiIdleInterval);
+  console.log(`[${new Date().toISOString()}] External anti-idle pings scheduled every ${antiIdleInterval/1000/60} minutes`);
+}, 2 * 60 * 1000); // Start after 2 minutes
 
 // Start the server with npm run start
 console.log('Starting main application...');

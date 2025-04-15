@@ -1,0 +1,14 @@
+{
+  "name": "Innventa AI Chatbot",
+  "type": "http",
+  "url": "https://your-app-name.onrender.com/health",
+  "method": "GET",
+  "interval": 5,
+  "retryInterval": 1,
+  "maxretries": 3,
+  "upsideDown": false,
+  "notificationIDList": [],
+  "tags": ["render", "production"],
+  "description": "Innventa AI Chatbot Health Check",
+  "documentation": "Configure this in Uptime Kuma to keep your application running 24/7"
+}

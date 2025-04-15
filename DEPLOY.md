@@ -99,14 +99,55 @@ When using the free tier (512MB RAM, 0.1 CPU), consider the following optimizati
 
 1. **Response Time**: Expect slightly longer response times, especially for initial responses or after periods of inactivity.
 
-2. **Idling**: Free tier services on Render will sleep after 15 minutes of inactivity. The first request after inactivity will take longer as the service spins up.
-
-3. **Memory Usage**: We've optimized the startup script to reduce memory usage:
+2. **Memory Usage**: We've optimized the startup script to reduce memory usage:
    - Integrated health checks into the main process instead of using a separate process
-   - Increased interval times for monitoring tasks
+   - Optimized interval times for monitoring tasks
    - Removed unnecessary background processes
 
-4. **Concurrency**: The free tier has limited capacity to handle concurrent users. For production use with more than a few simultaneous users, consider upgrading to a paid plan.
+3. **Concurrency**: The free tier has limited capacity to handle concurrent users. For production use with more than a few simultaneous users, consider upgrading to a paid plan.
+
+### Keeping Your Free Tier Service Running 24/7
+
+By default, Render free tier services sleep after 15 minutes of inactivity. To keep your service active 24/7, we've implemented multiple strategies:
+
+#### 1. Built-in Anti-Idle Mechanism
+
+The application includes an anti-idle system in `render-start.cjs` that:
+- Makes internal health checks every 10 minutes
+- Sends external pings to itself every 10 minutes (before Render's 15-minute sleep threshold)
+- Automatically recovers if the service is temporarily unavailable
+
+This built-in mechanism should keep your service active most of the time without any additional configuration.
+
+#### 2. External Uptime Monitors (Recommended)
+
+For maximum reliability, set up an external uptime monitor:
+
+**Option A: Uptime Kuma (Self-hosted, Free)**
+1. Deploy [Uptime Kuma](https://github.com/louislam/uptime-kuma) on another server or locally
+2. Use the provided `uptime-kuma-config.json` file to configure monitoring
+3. Set the ping interval to 5-10 minutes
+
+**Option B: UptimeRobot (Cloud-based, Free Plan Available)**
+1. Sign up at [UptimeRobot](https://uptimerobot.com/)
+2. Add a new monitor with these settings:
+   - Monitor Type: HTTP(S)
+   - URL: `https://your-app-name.onrender.com/health`
+   - Monitoring Interval: 5 minutes
+
+**Option C: Local Keep-Alive Script**
+1. Use the provided `keep-alive.js` script that runs on your local machine
+2. Run it with: `APP_URL=https://your-app-name.onrender.com/health node keep-alive.js`
+3. Keep the script running 24/7 on your computer or another server
+
+**Option D: Cron Job Services**
+1. Sign up at a service like [Cron-job.org](https://cron-job.org/) (free)
+2. Create a new cron job to ping your app's health endpoint
+3. Set it to run every 10 minutes
+
+Using any of these external monitors in combination with the built-in mechanism will help ensure your application runs 24/7 on the free tier.
+
+> **Note**: While these methods are effective at keeping your app awake, they do consume resources and generate network traffic. Make sure you're not violating any terms of service by using these techniques excessively.
 
 ## Testing the Deployment
 
