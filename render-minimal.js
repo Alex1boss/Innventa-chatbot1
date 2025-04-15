@@ -1,13 +1,13 @@
-// Minimal ES5-compatible Express server for Render deployment
+// Minimal ES5-compatible Express server for Render free tier deployment
 var express = require('express');
 var path = require('path');
 var fs = require('fs');
 var http = require('http');
 var https = require('https');
 
-// Create Express app
+// Create Express app (using CommonJS to ensure compatibility)
 var app = express();
-var PORT = process.env.PORT || 5000;
+var PORT = process.env.PORT || 3000; // Use port 3000 for free tier
 
 // Helper functions
 function checkApiKeys() {

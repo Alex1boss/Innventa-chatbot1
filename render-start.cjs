@@ -7,7 +7,7 @@ function pingHealthEndpoint() {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'localhost',
-      port: 5000,
+      port: process.env.PORT || 3000,
       path: '/health',
       method: 'GET',
       timeout: 5000
@@ -88,7 +88,7 @@ const pingInternalHealth = () => {
   const http = require('http');
   const options = {
     hostname: 'localhost',
-    port: 5000,
+    port: process.env.PORT || 3000,
     path: '/health',
     method: 'GET',
     timeout: 5000
@@ -121,7 +121,7 @@ const pingExternalEndpoint = () => {
   const https = require('https');
   
   // Set a default URL if environment variables are not available
-  let appUrl = 'http://localhost:5000/health'; // Default fallback for local development
+  let appUrl = `http://localhost:${process.env.PORT || 3000}/health`; // Default fallback for local development
   
   // If EXTERNAL_URL is defined, use it directly
   if (process.env.EXTERNAL_URL) {
@@ -315,7 +315,8 @@ try {
   
   console.log('Starting server process...');
   // Use a custom environment variable to indicate we're running in Render environment
-  const childProcess = spawn('node', ['--require=./render-paths-fix.cjs', 'dist/index.js'], {
+  // Use render.js instead of dist/index.js for more compatibility with free tier
+  const childProcess = spawn('node', ['render.js'], {
     stdio: 'inherit',
     shell: true,
     env: { 
@@ -323,7 +324,9 @@ try {
       // Make sure NODE_ENV is set for production
       NODE_ENV: 'production',
       // Add a flag to indicate we're in Render
-      IS_RENDER: 'true'
+      IS_RENDER: 'true',
+      // Set the port explicitly for free tier
+      PORT: process.env.PORT || 3000
     }
   });
 

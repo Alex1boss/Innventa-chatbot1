@@ -1,6 +1,7 @@
 /**
- * Simple Express server for Render deployment
- * This avoids ESM vs CommonJS issues
+ * Simple Express server for Render free tier deployment
+ * This is a CommonJS version that avoids ESM vs CommonJS issues
+ * and ensures compatibility with Render free tier
  */
 const express = require('express');
 const path = require('path');
@@ -10,7 +11,7 @@ const https = require('https');
 
 // Create Express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000; // Use port 3000 for free tier
 
 // Check for API keys
 function checkApiKeys() {
