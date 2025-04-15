@@ -73,7 +73,7 @@ This error is related to ESM module path resolution on Render. We've implemented
 
 1. Check that `render-free-tier.js` is included in your repository
 2. Make sure `render-start.cjs` is correctly configured to use this file
-3. If the error persists, try manually editing the service to use the command: `node render-free-tier.js` directly
+3. If the error persists, try manually editing the service to use the command: `node render-free-tier.cjs` directly
 
 ### Error: Server exited with an error
 
