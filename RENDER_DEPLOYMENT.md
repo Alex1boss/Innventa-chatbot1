@@ -1,6 +1,6 @@
 # Deploying Innventa AI Chatbot to Render.com (Free Tier)
 
-This guide will walk you through deploying your Innventa AI chatbot on Render.com's free tier.
+This guide will walk you through deploying your Innventa AI chatbot on Render.com's free tier. We've optimized the deployment process specifically for Render's free tier to avoid common issues like path resolution errors and port conflicts.
 
 ## Prerequisites
 
@@ -64,3 +64,29 @@ This guide will walk you through deploying your Innventa AI chatbot on Render.co
 ## Keeping Your Service Active
 
 The external monitoring with UptimeRobot will help keep your service active by periodically pinging it. This should be sufficient for most use cases on the free tier.
+
+## Troubleshooting Common Free Tier Issues
+
+### Error: The "paths[0]" argument must be of type string. Received undefined
+
+This error is related to ESM module path resolution on Render. We've implemented a custom solution:
+
+1. Check that `render-free-tier.js` is included in your repository
+2. Make sure `render-start.cjs` is correctly configured to use this file
+3. If the error persists, try manually editing the service to use the command: `node render-free-tier.js` directly
+
+### Error: Server exited with an error
+
+This could be due to:
+
+1. **Missing environment variables**: Verify your API keys are set correctly in the Render dashboard
+2. **Port conflicts**: Our code is set to use the PORT environment variable provided by Render or fall back to port 3000
+3. **Memory limits**: The free tier has limited memory (512MB). Our app is optimized to stay within these limits
+
+### Long Startup Times
+
+Free tier services can take 30-60 seconds to cold start after being idle. This is normal behavior:
+
+1. The first request after inactivity will take longer
+2. Subsequent requests will be much faster
+3. If you need faster response times, consider upgrading to a paid plan

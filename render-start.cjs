@@ -315,8 +315,8 @@ try {
   
   console.log('Starting server process...');
   // Use a custom environment variable to indicate we're running in Render environment
-  // Use render.js instead of dist/index.js for more compatibility with free tier
-  const childProcess = spawn('node', ['render.js'], {
+  // Use render-free-tier.js for compatibility with Render's free tier
+  const childProcess = spawn('node', ['render-free-tier.js'], {
     stdio: 'inherit',
     shell: true,
     env: { 
