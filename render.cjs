@@ -252,7 +252,7 @@ const htmlContent = `<!DOCTYPE html>
             if (!openaiConfigured) missing.push('OpenAI');
             if (!geminiConfigured) missing.push('Gemini');
             
-            apiStatusEl.textContent = `Missing API keys: ${missing.join(', ')} ❌`;
+            apiStatusEl.textContent = 'Missing API keys: ' + missing.join(', ') + ' ❌';
             apiStatusEl.className = 'api-status error';
           }
           
@@ -467,18 +467,18 @@ app.listen(PORT, () => {
   
   // Setup anti-idle ping for free tier
   if (process.env.RENDER_EXTERNAL_HOSTNAME) {
-    console.log(`Setting up anti-idle ping for ${process.env.RENDER_EXTERNAL_HOSTNAME}`);
+    console.log('Setting up anti-idle ping for ' + process.env.RENDER_EXTERNAL_HOSTNAME);
     
     const pingInterval = 10 * 60 * 1000; // 10 minutes
     
-    setInterval(() => {
-      const pingUrl = `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/health`;
-      console.log(`Pinging ${pingUrl}`);
+    setInterval(function() {
+      const pingUrl = 'https://' + process.env.RENDER_EXTERNAL_HOSTNAME + '/health';
+      console.log('Pinging ' + pingUrl);
       
-      https.get(pingUrl, (res) => {
-        console.log(`Anti-idle ping status: ${res.statusCode}`);
-      }).on('error', (err) => {
-        console.error(`Anti-idle ping failed: ${err.message}`);
+      https.get(pingUrl, function(res) {
+        console.log('Anti-idle ping status: ' + res.statusCode);
+      }).on('error', function(err) {
+        console.error('Anti-idle ping failed: ' + err.message);
       });
     }, pingInterval);
   }
