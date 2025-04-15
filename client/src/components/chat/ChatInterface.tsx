@@ -10,9 +10,14 @@ export function ChatInterface() {
   const [lastResponse, setLastResponse] = useState<ResponseTemplate | null>(null);
 
   const handleSendMessage = async (message: string) => {
-    const response = await sendMessage(message);
-    if (response) {
-      setLastResponse(response);
+    try {
+      const response = await sendMessage(message);
+      if (response) {
+        setLastResponse(response);
+      }
+    } catch (error) {
+      console.error('Error handling message send:', error);
+      // Don't update lastResponse on error
     }
   };
 

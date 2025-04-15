@@ -6,7 +6,12 @@ interface MessageBubbleProps {
   message: ChatMessage;
 }
 
-function parseMessageContent(content: string): JSX.Element {
+function parseMessageContent(content: string | undefined | null): JSX.Element {
+  // Handle null or undefined content
+  if (!content) {
+    return <p className="text-sm">No message content</p>;
+  }
+  
   // Split the message content by new lines and map to paragraphs
   return (
     <>

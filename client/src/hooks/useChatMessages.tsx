@@ -28,10 +28,12 @@ export function useChatMessages() {
         const welcomeData = await welcomeResponse.json();
         console.log('Welcome message received:', welcomeData);
         
-        // Add welcome message to chat
+        // Add welcome message to chat with null check
         const welcomeMessage: ChatMessage = {
           id: nanoid(),
-          content: welcomeData.message.content,
+          content: welcomeData && welcomeData.message && welcomeData.message.content
+            ? welcomeData.message.content
+            : "Welcome to Innventa AI Chat! How can I help you today?",
           fromUser: false,
           timestamp: new Date()
         };
@@ -96,10 +98,12 @@ export function useChatMessages() {
       const data = await response.json();
       console.log('Received API response:', data);
       
-      // Create bot response message
+      // Create bot response message with null check
       const botMessage: ChatMessage = {
         id: nanoid(),
-        content: data.message.content,
+        content: data && data.message && data.message.content 
+          ? data.message.content 
+          : "Sorry, I couldn't process that request.",
         fromUser: false,
         timestamp: new Date()
       };
@@ -109,7 +113,8 @@ export function useChatMessages() {
       setMessages(prev => [...prev, botMessage]);
       console.log('Message sent and response received successfully');
       
-      return data.message;
+      // Safely return the message object with null check
+      return data && data.message ? data.message : undefined;
     } catch (error) {
       console.error('Error sending message:', error);
       setIsTyping(false);
