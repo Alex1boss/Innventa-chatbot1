@@ -459,15 +459,15 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Simple welcome message endpoint
+// Welcome message endpoint
 app.get('/api/chat/welcome', (req, res) => {
   res.json({
     message: {
-      content: "Hey! 👋\nI'm here if you need help with your shopping decisions. Ask me anything about products, recommendations, or prices!",
+      content: "Hey! 👋\nI'm your Innventa AI shopping assistant. Ask me anything about products, recommendations, or our app!",
       quickReplies: [
-        "Tell me about Innventa AI",
-        "How can you help me?",
-        "What products can you recommend?"
+        "What is Innventa AI?",
+        "How do I use the app?", 
+        "Product recommendations"
       ]
     }
   });
@@ -490,13 +490,60 @@ app.post('/api/chat/message', (req, res) => {
     });
   }
   
-  // For now, return a placeholder response
+  // Use predefined response templates based on the message content
+  const userMessageLower = userMessage.toLowerCase();
+  
+  // Check for specific keywords to provide appropriate responses
+  if (userMessageLower.includes("innventa") || userMessageLower.includes("about")) {
+    return res.json({
+      message: {
+        content: "Innventa AI is your shopping assistant that helps you discover products you'll love! 🛍️\n\nWe use AI to understand your style and preferences to recommend items that match what you're looking for.\n\nFor the best experience, check out our app where you can browse personalized recommendations!",
+        quickReplies: [
+          "How do I use the app?",
+          "I need help with something",
+          "Product recommendations"
+        ],
+        includeAppRedirect: true
+      }
+    });
+  }
+  
+  if (userMessageLower.includes("app") || userMessageLower.includes("download") || userMessageLower.includes("use")) {
+    return res.json({
+      message: {
+        content: "The Innventa AI app is available on both iOS and Android.\n\nTo get started:\n1. Download the app from the App Store or Google Play\n2. Create an account\n3. Take our quick style quiz\n4. Start browsing personalized recommendations!\n\nWould you like me to help you find something specific?",
+        quickReplies: [
+          "Send me the download link",
+          "What can I do in the app?",
+          "I need help with something else"
+        ],
+        includeAppRedirect: true
+      }
+    });
+  }
+  
+  if (userMessageLower.includes("product") || userMessageLower.includes("recommend") || userMessageLower.includes("shop")) {
+    return res.json({
+      message: {
+        content: "I'd love to help you find the perfect products for you! 👟\n\nFor the best personalized recommendations, you'll want to use our app where I can show you options based on your style and preferences.",
+        quickReplies: [
+          "How do I use the app?",
+          "What is Innventa AI?",
+          "Download link"
+        ],
+        includeAppRedirect: true
+      }
+    });
+  }
+  
+  // Default response for other messages
   res.json({
     message: {
-      content: "I'm a simple response from the free tier server. For real AI responses, please make sure your API keys are configured correctly in the Render dashboard.",
+      content: "Hello! What can I help you with today? Ask me about Innventa AI, our app, or how to get personalized product recommendations!",
       quickReplies: [
-        "How do I download the app?",
-        "Tell me more about Innventa AI"
+        "What is Innventa AI?",
+        "How do I use the app?",
+        "Product recommendations"
       ]
     }
   });
