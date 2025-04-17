@@ -446,12 +446,67 @@ function setupKeepAlive() {
   console.log(`Keepalive ping scheduled every ${interval/1000/60} minutes`);
 }
 
+// Instagram webhook verification token
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'innventa_secure_token';
+
+// Instagram/Meta Webhook Verification Endpoint
+app.get('/webhook', (req, res) => {
+  console.log('Received webhook verification request:', req.query);
+  
+  // Parse query parameters
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  
+  console.log(`Webhook verification: mode=${mode}, token=${token}, challenge=${challenge}`);
+  
+  // Check if a token and mode were sent
+  if (mode && token) {
+    // Check the mode and token
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      // Respond with the challenge token from the request
+      console.log('WEBHOOK_VERIFIED - Success!');
+      return res.status(200).send(challenge);
+    } else {
+      // Respond with '403 Forbidden' if verify tokens do not match
+      console.error('Verification failed. Token mismatch.');
+      return res.sendStatus(403);
+    }
+  } else {
+    // Return a '400 Bad Request' if required parameters are missing
+    console.error('Missing required parameters');
+    return res.sendStatus(400);
+  }
+});
+
+// Instagram/Meta Webhook Event Reception
+app.post('/webhook', (req, res) => {
+  const body = req.body;
+  
+  console.log('Received webhook event:', JSON.stringify(body));
+  
+  // Check if this is an event from Instagram
+  if (body.object === 'instagram') {
+    // Process Instagram events here
+    // For now, we'll just acknowledge receipt
+    return res.status(200).send('EVENT_RECEIVED');
+  } else {
+    // Return a '404 Not Found' if event is not from a page subscription
+    console.log('Unknown webhook event type');
+    return res.sendStatus(404);
+  }
+});
+
 // API routes
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
+    webhook: {
+      configured: true,
+      verifyToken: VERIFY_TOKEN ? 'configured' : 'missing'
+    },
     apiKeys: {
       openai: process.env.OPENAI_API_KEY ? 'configured' : 'missing',
       gemini: process.env.GEMINI_API_KEY ? 'configured' : 'missing'

@@ -18,8 +18,8 @@ This guide provides instructions for deploying the Innventa AI chatbot applicati
 4. Fill in the following details:
    - **Name**: innventachat-ai
    - **Environment**: Node
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `node server.js`
+   - **Build Command**: `npm install`
+   - **Start Command**: `node render-free-tier.js`
 
 ### 2. Set Up Environment Variables
 

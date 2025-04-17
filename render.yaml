@@ -3,8 +3,8 @@ services:
     name: innventachat-ai
     env: node
     repo: https://github.com/your-github-repo/innventa-chatbot.git # Replace with your actual repo URL
-    buildCommand: npm install && npm run build
-    startCommand: node server.js
+    buildCommand: npm install
+    startCommand: node render-free-tier.js
     healthCheckPath: /health
     envVars:
       - key: VERIFY_TOKEN
