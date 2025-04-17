@@ -475,28 +475,40 @@ app.get('/api/chat/welcome', (req, res) => {
 
 // Facebook/Instagram webhook verification endpoint
 app.get('/webhook', (req, res) => {
+  console.log('Received webhook verification request:', req.query);
+  
   // Your verify token (should be a strong, unique string)
-  const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "innventa-ai-verify-token";
+  const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "innventa_secure_token";
   
   // Parse the query params
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
   
+  console.log(`Webhook verification: mode=${mode}, token=${token}, challenge=${challenge}`);
+  console.log(`Expected token: ${VERIFY_TOKEN}`);
+  
   // Check if a token and mode is in the query string of the request
   if (mode && token) {
     // Check the mode and token sent are correct
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       // Respond with the challenge token from the request
-      console.log('WEBHOOK_VERIFIED');
+      console.log('WEBHOOK_VERIFIED: Challenge accepted');
+      // Must return challenge as plain text
       res.status(200).send(challenge);
     } else {
       // Respond with '403 Forbidden' if verify tokens do not match
+      console.log('WEBHOOK_DENIED: Token mismatch');
       res.sendStatus(403);
     }
   } else {
-    // Return a '404 Not Found' if mode or token are missing
-    res.sendStatus(404);
+    // For GET requests to this endpoint without verification params, return instructions
+    if (!mode && !token) {
+      return res.send('Instagram webhook endpoint is running. This endpoint is designed for Meta webhook verification.');
+    }
+    // Return a '400 Bad Request' if mode or token are missing
+    console.log('WEBHOOK_ERROR: Missing required parameters');
+    res.sendStatus(400);
   }
 });
 
