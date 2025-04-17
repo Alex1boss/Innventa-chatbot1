@@ -43,7 +43,28 @@ This guide will walk you through deploying your Innventa AI chatbot on Render.co
    - Set the URL to `https://innventa-ai-chatbot.onrender.com/health`
    - Set the monitoring interval to 5 minutes
 
+## Using with Instagram DMs (API Direct Integration)
+
+For direct Instagram Graph API integration:
+
+1. Deploy the standalone Instagram webhook handler:
+   ```
+   node instagram-webhook.cjs
+   ```
+   or add as a separate service on Render with start command: `node instagram-webhook.cjs`
+
+2. In Meta Developer Portal:
+   - Create an App
+   - Add Instagram Basic Display and Instagram Graph API products
+   - Configure Webhooks with your deployed URL: `https://your-app.onrender.com/`
+   - Use verify token: `innventa_secure_token` (or set a custom VERIFY_TOKEN env variable)
+   - Subscribe to `messages` field
+
+3. Complete App Review process with Meta to get necessary permissions
+
 ## Using with ManyChat for Instagram DMs
+
+If using ManyChat as an intermediary:
 
 1. In ManyChat, create a new flow
 2. Add an HTTP Request action with:

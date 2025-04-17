@@ -473,7 +473,102 @@ app.get('/api/chat/welcome', (req, res) => {
   });
 });
 
-// Basic message handling endpoint
+// Facebook/Instagram webhook verification endpoint
+app.get('/webhook', (req, res) => {
+  // Your verify token (should be a strong, unique string)
+  const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "innventa-ai-verify-token";
+  
+  // Parse the query params
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  
+  // Check if a token and mode is in the query string of the request
+  if (mode && token) {
+    // Check the mode and token sent are correct
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      // Respond with the challenge token from the request
+      console.log('WEBHOOK_VERIFIED');
+      res.status(200).send(challenge);
+    } else {
+      // Respond with '403 Forbidden' if verify tokens do not match
+      res.sendStatus(403);
+    }
+  } else {
+    // Return a '404 Not Found' if mode or token are missing
+    res.sendStatus(404);
+  }
+});
+
+// Facebook/Instagram webhook callback endpoint
+app.post('/webhook', (req, res) => {
+  const body = req.body;
+
+  // Check this is a page subscription event
+  if (body.object === 'page' || body.object === 'instagram') {
+    try {
+      // Process webhook event and extract user message
+      console.log('Received webhook event:', JSON.stringify(body));
+      
+      // Handle message events (structure varies between FB Messenger and Instagram)
+      if (body.entry && body.entry.length > 0) {
+        // Extract the user message text and sender ID
+        let message = "";
+        let senderId = "";
+        
+        // Get the message text and sender ID
+        try {
+          // Extract message from webhook payload (varies by platform)
+          // This is a simplified example - real implementations need more complex parsing
+          const entry = body.entry[0];
+          
+          if (entry.messaging) {
+            // Facebook Messenger format
+            const messagingEvent = entry.messaging[0];
+            senderId = messagingEvent.sender.id;
+            message = messagingEvent.message.text;
+          } else if (entry.changes) {
+            // Instagram format
+            const change = entry.changes[0];
+            if (change.value && change.value.messages) {
+              const instaMessage = change.value.messages[0];
+              senderId = instaMessage.from.id;
+              message = instaMessage.text.body;
+            }
+          }
+          
+          console.log(`Extracted message: "${message}" from sender: ${senderId}`);
+          
+          // Generate a response to the message
+          let responseText = `Thanks for your message: "${message}". I'm the Innventa AI shopping assistant!`;
+          
+          // Here you would generate a real response using AI or templates
+          // For now, we'll just use a placeholder
+          
+          console.log(`Sending response: "${responseText}" to sender: ${senderId}`);
+          
+          // For now, just acknowledge the webhook
+          res.status(200).send('EVENT_RECEIVED');
+          
+          // In a real implementation, you would send a response back to the user
+          // This requires making an HTTP POST to the Facebook/Instagram API
+          
+        } catch (extractError) {
+          console.error('Error extracting message:', extractError);
+          res.status(200).send('EVENT_RECEIVED');
+        }
+      }
+    } catch (err) {
+      console.error('Webhook processing error:', err);
+      res.status(200).send('EVENT_RECEIVED');
+    }
+  } else {
+    // Not a page subscription event, return 404
+    res.sendStatus(404);
+  }
+});
+
+// Basic message handling endpoint for the web chat UI
 app.post('/api/chat/message', (req, res) => {
   const userMessage = req.body.message || '';
   const sessionId = req.body.sessionId || 'default-session';
