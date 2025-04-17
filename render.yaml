@@ -1,20 +1,14 @@
 services:
   - type: web
-    name: innventa-ai-chatbot
+    name: innventachat-ai
     env: node
-    buildCommand: npm install; npm run build
-    startCommand: node render-free-tier.cjs
+    repo: https://github.com/your-github-repo/innventa-chatbot.git # Replace with your actual repo URL
+    buildCommand: npm install && npm run build
+    startCommand: node server.js
+    healthCheckPath: /health
     envVars:
+      - key: VERIFY_TOKEN
+        value: innventa_secure_token
       - key: NODE_ENV
         value: production
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: EXTERNAL_URL
-        value: "https://innventa-ai-chatbot.onrender.com/health"
-    plan: free # 512MB RAM, 0.1 CPU
-    branch: main
-    region: oregon
-    numInstances: 1
-    healthCheckPath: /health
+    plan: free

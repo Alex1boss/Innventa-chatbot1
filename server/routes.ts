@@ -6,6 +6,9 @@ import { insertMessageSchema } from "@shared/schema";
 import { matchResponse } from "@shared/responses";
 import { nanoid } from "nanoid";
 
+// Instagram webhook verification token
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "innventa_secure_token";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get welcome message
   app.get("/api/chat/welcome", async (req: Request, res: Response) => {
@@ -153,6 +156,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error generating session ID:', error);
       res.status(500).json({ message: "Failed to generate session ID" });
+    }
+  });
+  
+  // Instagram/Meta Webhook Verification Endpoint
+  app.get('/webhook', (req: Request, res: Response) => {
+    console.log('Received webhook verification request:', req.query);
+    
+    // Parse query parameters
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+    
+    // Check if a token and mode were sent
+    if (mode && token) {
+      // Check the mode and token
+      if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+        // Respond with the challenge token from the request
+        console.log('WEBHOOK_VERIFIED');
+        return res.status(200).send(challenge);
+      } else {
+        // Respond with '403 Forbidden' if verify tokens do not match
+        console.error('Verification failed. Token mismatch.');
+        return res.sendStatus(403);
+      }
+    } else {
+      // Return a '400 Bad Request' if required parameters are missing
+      console.error('Missing required parameters');
+      return res.sendStatus(400);
+    }
+  });
+  
+  // Instagram/Meta Webhook Event Reception
+  app.post('/webhook', (req: Request, res: Response) => {
+    const body = req.body;
+    
+    console.log('Received webhook event:', JSON.stringify(body));
+    
+    // Check if this is an event from a page subscription
+    if (body.object === 'instagram') {
+      // Process Instagram events here
+      // For now, we'll just acknowledge receipt
+      return res.status(200).send('EVENT_RECEIVED');
+    } else {
+      // Return a '404 Not Found' if event is not from a page subscription
+      console.log('Unknown webhook event type');
+      return res.sendStatus(404);
     }
   });
   
