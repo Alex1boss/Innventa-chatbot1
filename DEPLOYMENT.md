@@ -29,6 +29,11 @@ Add the following environment variables in the Render dashboard:
 - `OPENAI_API_KEY`: (your OpenAI API key)
 - `GEMINI_API_KEY`: (your Google Gemini API key)
 
+For Instagram integration, also add these variables:
+- `INSTAGRAM_ACCESS_TOKEN`: (your long-lived Instagram access token)
+- `INSTAGRAM_APP_ID`: 65370229413876 (or your app ID)
+- `INSTAGRAM_APP_SECRET`: (your app secret from Meta Developer dashboard)
+
 ### 3. Deploy the Service
 
 1. Click "Create Web Service"

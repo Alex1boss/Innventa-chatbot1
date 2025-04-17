@@ -479,19 +479,160 @@ app.get('/webhook', (req, res) => {
   }
 });
 
+// Function to handle sending a message to Instagram
+async function sendInstagramMessage(recipientId, messageText) {
+  console.log(`Sending message to ${recipientId}: ${messageText}`);
+
+  // Check for Instagram access token
+  const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN;
+  if (!INSTAGRAM_ACCESS_TOKEN) {
+    console.error('Missing INSTAGRAM_ACCESS_TOKEN environment variable');
+    return false;
+  }
+
+  try {
+    // Construct the API URL for sending messages
+    // Using Instagram Graph API
+    const apiUrl = `https://graph.facebook.com/v19.0/me/messages`;
+    
+    // Construct message payload
+    const messageData = {
+      recipient: {
+        id: recipientId
+      },
+      message: {
+        text: messageText
+      },
+      access_token: INSTAGRAM_ACCESS_TOKEN
+    };
+    
+    // Send the HTTP request
+    const https = require('https');
+    
+    return new Promise((resolve, reject) => {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
+      
+      const req = https.request(apiUrl, requestOptions, (res) => {
+        let data = '';
+        
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        res.on('end', () => {
+          console.log('Instagram API response:', data);
+          if (res.statusCode === 200) {
+            resolve(true);
+          } else {
+            console.error(`Error sending message: HTTP ${res.statusCode}`);
+            console.error('Response data:', data);
+            resolve(false);
+          }
+        });
+      });
+      
+      req.on('error', (error) => {
+        console.error('Error sending message to Instagram:', error);
+        reject(error);
+      });
+      
+      req.write(JSON.stringify(messageData));
+      req.end();
+    });
+  } catch (error) {
+    console.error('Exception sending message to Instagram:', error);
+    return false;
+  }
+}
+
+// Generate a chatbot response based on user message
+async function generateChatbotResponse(userMessage) {
+  // Check for API keys
+  const hasApiKeys = checkApiKeys();
+  
+  if (!hasApiKeys) {
+    return "I'm having trouble connecting to my AI services right now. Please try again later or contact support.";
+  }
+  
+  // First try to use predefined responses
+  const simpleResponses = {
+    'hi': "Hello! How can I help you today?",
+    'hello': "Hi there! I'm the Innventa AI chatbot. How can I assist you?",
+    'help': "I can help with product recommendations, answer questions about Innventa AI, or provide information about our services. What would you like to know?",
+    'what is innventa': "Innventa AI is an intelligent shopping assistant that helps you discover products tailored to your preferences and needs.",
+    'thanks': "You're welcome! Is there anything else I can help with?",
+    'thank you': "You're welcome! Feel free to reach out if you need anything else."
+  };
+  
+  // Check if we have a simple match
+  const lowercaseMessage = userMessage.toLowerCase();
+  for (const key in simpleResponses) {
+    if (lowercaseMessage.includes(key)) {
+      return simpleResponses[key];
+    }
+  }
+  
+  // For more complex responses, we would integrate with OpenAI or Gemini here
+  // For now, we'll return a placeholder response
+  return "Thank you for your message! I'm currently operating in a simplified mode. For personalized recommendations, please check our app or website.";
+}
+
 // Instagram/Meta Webhook Event Reception
-app.post('/webhook', (req, res) => {
+app.post('/webhook', async (req, res) => {
   const body = req.body;
   
   console.log('Received webhook event:', JSON.stringify(body));
   
   // Check if this is an event from Instagram
   if (body.object === 'instagram') {
-    // Process Instagram events here
-    // For now, we'll just acknowledge receipt
-    return res.status(200).send('EVENT_RECEIVED');
+    // Immediately respond to acknowledge receipt
+    // This is important to prevent webhook timeouts
+    res.status(200).send('EVENT_RECEIVED');
+    
+    try {
+      // Process each entry (there might be multiple)
+      if (body.entry && body.entry.length > 0) {
+        for (const entry of body.entry) {
+          // Process each messaging event
+          if (entry.messaging && entry.messaging.length > 0) {
+            for (const messagingEvent of entry.messaging) {
+              console.log('Processing Instagram message event:', JSON.stringify(messagingEvent));
+              
+              // Extract sender and message info
+              const senderId = messagingEvent.sender.id;
+              
+              // Check if this is a message with text
+              if (messagingEvent.message && messagingEvent.message.text) {
+                const messageText = messagingEvent.message.text;
+                console.log(`Received message: ${messageText} from sender: ${senderId}`);
+                
+                // Generate a response
+                const responseText = await generateChatbotResponse(messageText);
+                
+                // Send the response back to the user
+                await sendInstagramMessage(senderId, responseText);
+              } else {
+                console.log('Received event without message text');
+                // Handle other event types if needed (attachments, etc.)
+              }
+            }
+          } else {
+            console.log('No messaging array in entry');
+          }
+        }
+      } else {
+        console.log('No entries in webhook payload');
+      }
+    } catch (error) {
+      console.error('Error processing webhook event:', error);
+    }
   } else {
-    // Return a '404 Not Found' if event is not from a page subscription
+    // Return a '404 Not Found' if event is not from Instagram
     console.log('Unknown webhook event type');
     return res.sendStatus(404);
   }
@@ -507,11 +648,97 @@ app.get('/health', (req, res) => {
       configured: true,
       verifyToken: VERIFY_TOKEN ? 'configured' : 'missing'
     },
+    instagram: {
+      accessToken: process.env.INSTAGRAM_ACCESS_TOKEN ? 'configured' : 'missing',
+      appId: process.env.INSTAGRAM_APP_ID ? 'configured' : 'missing',
+      appSecret: process.env.INSTAGRAM_APP_SECRET ? 'configured' : 'missing'
+    },
     apiKeys: {
       openai: process.env.OPENAI_API_KEY ? 'configured' : 'missing',
       gemini: process.env.GEMINI_API_KEY ? 'configured' : 'missing'
     }
   });
+});
+
+// Instagram token debug endpoint
+app.get('/debug/instagram', async (req, res) => {
+  const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+  
+  if (!token) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Instagram access token not configured. Please add INSTAGRAM_ACCESS_TOKEN to your environment variables.'
+    });
+  }
+  
+  try {
+    // Validate token by making a request to the Graph API
+    const https = require('https');
+    const debugUrl = `https://graph.facebook.com/v19.0/debug_token?input_token=${token}&access_token=${token}`;
+    
+    const tokenInfo = await new Promise((resolve, reject) => {
+      https.get(debugUrl, (apiRes) => {
+        let data = '';
+        
+        apiRes.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        apiRes.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(e);
+          }
+        });
+        
+        apiRes.on('error', (e) => {
+          reject(e);
+        });
+      });
+    });
+    
+    // Get basic profile info to further validate
+    const meUrl = `https://graph.facebook.com/v19.0/me?access_token=${token}`;
+    
+    const profileInfo = await new Promise((resolve, reject) => {
+      https.get(meUrl, (apiRes) => {
+        let data = '';
+        
+        apiRes.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        apiRes.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(e);
+          }
+        });
+        
+        apiRes.on('error', (e) => {
+          reject(e);
+        });
+      });
+    });
+    
+    // Return combined debug information
+    res.json({
+      status: 'success',
+      message: 'Instagram token is valid',
+      tokenInfo: tokenInfo,
+      profileInfo: profileInfo,
+      permissions: tokenInfo.data?.scopes || []
+    });
+  } catch (error) {
+    console.error('Error debugging Instagram token:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error validating Instagram token',
+      error: error.message
+    });
+  }
 });
 
 // Simple welcome message endpoint
